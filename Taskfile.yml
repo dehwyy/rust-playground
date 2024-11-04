@@ -1,0 +1,7 @@
+version: "3"
+
+
+tasks:
+  matrix:
+    cmds:
+      - cargo run --example matrix
