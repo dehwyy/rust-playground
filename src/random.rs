@@ -1,3 +1,4 @@
+use rand::distributions::uniform::SampleUniform;
 use rand::thread_rng;
 use rand::prelude::*;
 
@@ -6,7 +7,10 @@ pub struct Random<T> {
 }
 
 impl<T> Random<T>
-where rand::distributions::Standard: Distribution<T> {
+where
+      rand::distributions::Standard: Distribution<T>,
+      T: PartialOrd + SampleUniform
+{
   pub fn get_vec(size: usize) -> Vec<T> {
     let mut rng = thread_rng();
 
@@ -16,5 +20,13 @@ where rand::distributions::Standard: Distribution<T> {
     }
 
     v
+  }
+
+  pub fn get() -> T {
+    random()
+  }
+
+  pub fn get_in_range(min: T, max: T) -> T {
+    thread_rng().gen_range(min..max)
   }
 }
