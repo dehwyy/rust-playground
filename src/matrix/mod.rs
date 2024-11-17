@@ -32,6 +32,11 @@ use crate::random::Random;
 //           println!("{}", X_BOTTOM_BORDER.repeat(matrix_print_size));
 //         }
 
+mod print {
+    pub const PRECISION: usize = 4;
+    pub const ITEM_X_GAP: usize = 4;
+}
+
 type MatrixItem = f32;
 type ItemCell = Cell<MatrixItem>;
 type MatrixDim = usize;

@@ -43,6 +43,20 @@ where
         &self.get_data()[i][j]
     }
 
+    fn get_min(&self) -> MatrixItem {
+        self.iter()
+            .min_by(|a, b| a.get().partial_cmp(&b.get()).unwrap())
+            .expect("Empty iterator!")
+            .get()
+    }
+
+    fn get_max(&self) -> MatrixItem {
+        self.iter()
+            .max_by(|a, b| a.get().partial_cmp(&b.get()).unwrap())
+            .expect("Empty iterator!")
+            .get()
+    }
+
     /// @Mutate matrix row | [fold_to_row_idx]
     ///
     /// @Leaves unchanged elements in | [fold_from_row_idx]
@@ -139,13 +153,6 @@ impl Matrix {
             dim,
         }
     }
-
-    // pub fn to_echelon_form(self) -> Self {}
-
-    // pub fn as_echelon_form(&self) -> Self {
-    //     let matrix_clone = self.clone();
-    //     matrix_clone.to_echelon_form()
-    // }
 }
 
 impl SquareMatrix {
@@ -219,9 +226,16 @@ impl TryFrom<Matrix> for SquareMatrix {
 
 impl Display for Matrix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let precision = f.precision().unwrap_or(print::PRECISION);
+        // TODO: no `to_string` type shit
+        let width = ((self.get_max() as i32).to_string().len() + 1)
+            .max((self.get_min() as i32).to_string().len())
+            + precision
+            + print::ITEM_X_GAP;
+
         for i in 0..self.dim.get_m() {
             for j in 0..self.dim.get_n() {
-                write!(f, "{}", self.get(i, j).get())?;
+                write!(f, "{:>width$.precision$}", self.get(i, j).get())?;
 
                 if j != self.dim.get_n() - 1 {
                     write!(f, " ")?;

@@ -9,9 +9,9 @@ fn main() {
     let sq_matrix = SquareMatrix::try_from(&matrix).unwrap();
 
     // let (echo, _) = matrix.as_echelon_form();
-    println!("{}", matrix);
+    println!("{:.10}", matrix);
     println!("");
-    println!("{}", matrix.to_echelon_form());
+    println!("{:.10}", matrix.to_echelon_form());
     println!("");
     println!("{}", sq_matrix.det());
 }
