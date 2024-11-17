@@ -1,3 +1,5 @@
+use pg::math::get_i32_len;
+
 use super::*;
 
 fn new_empty_matrix_data(dim: &Dim) -> Vec<Vec<ItemCell>> {
@@ -20,7 +22,7 @@ pub trait MatrixRepr {
 
 pub trait MatrixOperations: MatrixRepr
 where
-    Self: Sized + Clone,
+    Self: Sized + Clone + Display,
 {
     fn iter(&self) -> impl Iterator<Item = &ItemCell> {
         self.get_data().iter().flatten()
@@ -43,25 +45,17 @@ where
         &self.get_data()[i][j]
     }
 
-    fn get_min(&self) -> MatrixItem {
-        self.iter()
-            .min_by(|a, b| a.get().partial_cmp(&b.get()).unwrap())
-            .expect("Empty iterator!")
-            .get()
-    }
-
-    fn get_max(&self) -> MatrixItem {
-        self.iter()
-            .max_by(|a, b| a.get().partial_cmp(&b.get()).unwrap())
-            .expect("Empty iterator!")
-            .get()
-    }
-
     /// @Mutate matrix row | [fold_to_row_idx]
     ///
     /// @Leaves unchanged elements in | [fold_from_row_idx]
     fn fold_row(&self, to_idx: MatrixDim, from_idx: MatrixDim, k: f32) {
         self.row(to_idx).fold(self.row(from_idx), k);
+    }
+
+    fn spaw_rows(&mut self, lhs: MatrixDim, rhs: MatrixDim) {
+        for i in 0..self.get_dim().get_n() {
+            self.get_data()[lhs][i].swap(&self.get_data()[rhs][i]);
+        }
     }
 
     fn fill_random(&mut self) {
@@ -78,21 +72,48 @@ where
         self.iter().for_each(|v| v.set(value));
     }
 
-    fn to_echelon_form(self) -> Self {
-        // TODO: zero-checks,
+    fn fill_fn(&mut self, f: impl Fn(MatrixDim, MatrixDim) -> MatrixItem) {
+        for i in 0..self.get_dim().get_m() {
+            for j in 0..self.get_dim().get_n() {
+                self.get_data()[i][j].set(f(i, j));
+            }
+        }
+    }
+
+    fn to_echelon_form(mut self) -> Self {
+        let mut start_pivot_idx = 0;
         // for each column
         for i in 0..self.get_dim().get_n() {
-            let pivot_el = self.get(i, i).get();
+            let (pivot_el, pivot_idx) = {
+                let mut el = 0.;
+                let mut idx = 0;
 
-            if pivot_el == 0. {
-                // TODO: perform checks
+                for j in start_pivot_idx..self.get_dim().get_m() {
+                    el = self.get(j, i).get();
+                    if el != 0. {
+                        idx = j;
+                        break;
+                    }
+                }
+
+                (el, idx)
+            };
+
+            if (pivot_el == 0.) {
+                continue;
             }
 
-            for j in i + 1..self.get_dim().get_n() {
+            if (pivot_idx != start_pivot_idx) {
+                self.spaw_rows(pivot_idx, i);
+            }
+
+            for j in (start_pivot_idx + 1)..self.get_dim().get_m() {
                 let factor = self.get(j, i).get() / pivot_el;
 
-                self.fold_row(j, i, -factor);
+                self.fold_row(j, start_pivot_idx, -factor);
             }
+
+            start_pivot_idx += 1;
         }
 
         self
@@ -224,29 +245,53 @@ impl TryFrom<Matrix> for SquareMatrix {
     }
 }
 
-impl Display for Matrix {
+impl Display for dyn MatrixRepr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let precision = f.precision().unwrap_or(print::PRECISION);
-        // TODO: no `to_string` type shit
-        let width = ((self.get_max() as i32).to_string().len() + 1)
-            .max((self.get_min() as i32).to_string().len())
-            + precision
-            + print::ITEM_X_GAP;
 
-        for i in 0..self.dim.get_m() {
-            for j in 0..self.dim.get_n() {
-                write!(f, "{:>width$.precision$}", self.get(i, j).get())?;
+        let (max, min) = {
+            let mut max = f32::MIN;
+            let mut min = f32::MAX;
+            self.get_data().iter().flatten().for_each(|v| {
+                let val = v.get();
+                (val > max).then(|| max = val);
+                (val < min).then(|| min = val);
+            });
 
-                if j != self.dim.get_n() - 1 {
+            (max as i32, min as i32)
+        };
+
+        let (m, n) = (self.get_dim().get_m(), self.get_dim().get_n());
+        let width = get_i32_len(max).max(get_i32_len(min)) + precision + print::ITEM_X_GAP;
+        let row_width = n * (width + 2);
+
+        writeln!(f, "{:_^row_width$}", "Matrix")?;
+        for i in 0..m {
+            for j in 0..n {
+                write!(f, "{:>width$.precision$}", self.get_data()[i][j].get())?;
+
+                if j != self.get_dim().get_n() - 1 {
                     write!(f, " ")?;
                 }
             }
 
-            if i != self.dim.get_m() - 1 {
+            if i != m - 1 {
                 writeln!(f)?;
             }
         }
 
         Ok(())
+    }
+}
+
+impl Display for SquareMatrix {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        <dyn MatrixRepr>::fmt(self, f)
+    }
+}
+
+impl Display for Matrix {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        <dyn MatrixRepr>::fmt(self, f)
     }
 }
