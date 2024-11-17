@@ -42,28 +42,32 @@ type MatrixDim = usize;
 pub struct Dim(MatrixDim, MatrixDim);
 
 impl Dim {
+    /// m = Rows
     #[inline]
     fn get_m(&self) -> MatrixDim {
         self.0
     }
 
+    /// n = Cols
     #[inline]
     fn get_n(&self) -> MatrixDim {
         self.1
     }
 
-    // todo: using `where`?
     pub fn new(m: MatrixDim, n: MatrixDim) -> Self {
         Self(m, n)
     }
 
-    pub fn flip(&mut self) {
-        std::mem::swap(&mut self.0, &mut self.1);
+    pub fn is_square(&self) -> bool {
+        self.0 == self.1
     }
+
+    // pub fn flip(&mut self) {
+    //     std::mem::swap(&mut self.0, &mut self.1);
+    // }
 }
 
 pub struct MatrixColumn(Vec<ItemCell>);
-
 pub struct MatrixRow<'a>(&'a Vec<ItemCell>);
 
 impl MatrixRow<'_> {
@@ -71,6 +75,9 @@ impl MatrixRow<'_> {
         self.0.iter()
     }
 
+    /// @Mutate `self`: `cell[self]` += `k` * `cell[row]`
+    ///
+    /// @Leaves unchanged `row`
     pub fn fold(&self, row: MatrixRow, k: f32) {
         for (v1, v2) in self.iter().zip(row.iter()) {
             v1.set(v1.get() + k * v2.get());
@@ -116,10 +123,10 @@ impl Matrix {
     fn empty_matrix_data(dim: &Dim) -> Vec<Vec<ItemCell>> {
         let mut matrix_data = Vec::with_capacity(dim.get_m().into());
 
-        for _ in 0..matrix_data.capacity() {
+        for _ in 0..dim.get_m() {
             let mut v = Vec::with_capacity(dim.get_n());
 
-            for _ in 0..v.capacity() {
+            for _ in 0..dim.get_n() {
                 v.push(Cell::new(MatrixItem::default()));
             }
 
@@ -132,6 +139,21 @@ impl Matrix {
     fn get(&self, i: MatrixDim, j: MatrixDim) -> &ItemCell {
         &self.data[i][j]
     }
+
+    /// @Returns `None` if all elements are `0.`
+    ///
+    /// @Returns `Some(el)` otherwise
+    // fn get_1st_nonzero_col_el(&self, col: MatrixDim) -> Option<MatrixItem> {
+    //     (0..self.dim.get_m()).for_each();
+    //     for i in 0..self.dim.get_m() {
+    //         let el = self.get(i, col).get();
+    //         if el != 0. {
+    //             return Some(el);
+    //         }
+    //     }
+
+    //     None
+    // }
 
     pub fn new(dim: Dim) -> Self {
         Self {
@@ -148,6 +170,18 @@ impl Matrix {
         // ? cast?? tf
         self.iter()
             .for_each(|v| v.set(Random::get_in_range(min as u8, max as u8) as f32));
+    }
+
+    pub fn main_diagonal(&self) -> Option<Vec<MatrixItem>> {
+        if !self.dim.is_square() {
+            return None;
+        }
+
+        Some(
+            (0..self.dim.get_m())
+                .map(|i| self.get(i, i).get())
+                .collect(),
+        )
     }
 
     pub fn as_echelon_form(&self) -> Self {
@@ -175,12 +209,21 @@ impl Matrix {
     }
 
     /// @Returns `determinant` of the matrix.
-    pub fn det(&self) -> i32 {
-        todo!()
-        // let lhs = self.get_i32(0, 0) * self.get_i32(1, 1);
-        // let rhs = self.get_i32(0, 1) * self.get_i32(1, 0);
+    ///
+    /// @If matrix is not square, returns `None`.
+    pub fn det(&self) -> Option<MatrixItem> {
+        if !self.dim.is_square() {
+            return None;
+        }
 
-        // lhs - rhs
+        let det = self
+            .as_echelon_form()
+            .main_diagonal()
+            .unwrap()
+            .iter()
+            .fold(1., |acc, el| acc * el);
+
+        Some(det)
     }
 }
 
