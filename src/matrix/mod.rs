@@ -1,7 +1,6 @@
 mod impls;
 pub use impls::*;
 
-use std::default;
 use std::{cell::Cell, fmt::Display};
 
 use crate::core as pg;
@@ -36,10 +35,13 @@ use crate::random::Random;
 mod print {
     pub const PRECISION: usize = 4;
     pub const ITEM_X_GAP: usize = 4;
+    // should be > 1;
+    pub const ITEM_Y_GAP: usize = 4;
 }
 
 type MatrixItem = f32;
 type ItemCell = Cell<MatrixItem>;
+type MatrixData = Vec<Vec<ItemCell>>;
 type MatrixDim = usize;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -50,13 +52,13 @@ pub struct MatrixRow<'a>(&'a Vec<ItemCell>);
 
 #[derive(Clone)]
 pub struct Matrix {
-    data: Vec<Vec<ItemCell>>,
+    data: MatrixData,
     dim: Dim,
 }
 
 /// Guaranteed to be N × N.
 #[derive(Clone)]
 pub struct SquareMatrix {
-    data: Vec<Vec<ItemCell>>,
+    data: MatrixData,
     size: MatrixDim,
 }

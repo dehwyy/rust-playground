@@ -1,8 +1,9 @@
-use pg::math::get_i32_len;
+use pg::{math::get_i32_len, term::print::Print};
+use print::ITEM_X_GAP;
 
 use super::*;
 
-fn new_empty_matrix_data(dim: &Dim) -> Vec<Vec<ItemCell>> {
+fn new_empty_matrix_data(dim: &Dim) -> MatrixData {
     let mut matrix_data = Vec::with_capacity(dim.get_m());
 
     for i in 0..dim.get_m() {
@@ -16,7 +17,7 @@ fn new_empty_matrix_data(dim: &Dim) -> Vec<Vec<ItemCell>> {
 }
 
 pub trait MatrixRepr {
-    fn get_data(&self) -> &'_ Vec<Vec<ItemCell>>;
+    fn get_data(&self) -> &'_ MatrixData;
     fn get_dim(&self) -> Dim;
 }
 
@@ -178,7 +179,10 @@ impl Matrix {
 
 impl SquareMatrix {
     pub fn new(size: MatrixDim) -> Self {
-        todo!()
+        Self {
+            data: new_empty_matrix_data(&Dim(size, size)),
+            size,
+        }
     }
 
     pub fn get_size(&self) -> MatrixDim {
@@ -202,20 +206,17 @@ impl SquareMatrix {
 }
 
 impl MatrixRepr for Matrix {
-    fn get_data(&self) -> &Vec<Vec<ItemCell>> {
+    fn get_data(&self) -> &MatrixData {
         &self.data
     }
-
     fn get_dim(&self) -> Dim {
         self.dim
     }
 }
-
 impl MatrixRepr for SquareMatrix {
-    fn get_data(&self) -> &Vec<Vec<ItemCell>> {
+    fn get_data(&self) -> &MatrixData {
         &self.data
     }
-
     fn get_dim(&self) -> Dim {
         Dim(self.size, self.size)
     }
@@ -231,7 +232,6 @@ impl TryFrom<&Matrix> for SquareMatrix {
         SquareMatrix::try_from(matrix_copy)
     }
 }
-
 impl TryFrom<Matrix> for SquareMatrix {
     type Error = pg::error::Error;
     fn try_from(value: Matrix) -> Result<Self, Self::Error> {
@@ -262,8 +262,8 @@ impl Display for dyn MatrixRepr {
         };
 
         let (m, n) = (self.get_dim().get_m(), self.get_dim().get_n());
-        let width = get_i32_len(max).max(get_i32_len(min)) + precision + print::ITEM_X_GAP;
-        let row_width = n * (width + 2);
+        let width = get_i32_len(max).max(get_i32_len(min)) + precision + print::ITEM_X_GAP / 2;
+        let row_width = n * (width + ITEM_X_GAP / 2);
 
         writeln!(f, "{:_^row_width$}", "Matrix")?;
         for i in 0..m {
@@ -275,21 +275,30 @@ impl Display for dyn MatrixRepr {
                 }
             }
 
+            // At least one newline.
+            writeln!(f)?;
+
+            // If not last row -> newline n-1 times.
             if i != m - 1 {
-                writeln!(f)?;
+                for _ in 1..print::ITEM_Y_GAP {
+                    writeln!(f)?;
+                }
             }
         }
+
+        writeln!(f, "{:‾^row_width$}", "")?;
 
         Ok(())
     }
 }
 
+impl Print for Matrix {}
+impl Print for SquareMatrix {}
 impl Display for SquareMatrix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         <dyn MatrixRepr>::fmt(self, f)
     }
 }
-
 impl Display for Matrix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         <dyn MatrixRepr>::fmt(self, f)
