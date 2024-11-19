@@ -1,11 +1,11 @@
 [package]
 authors = ["dehwyy <dehwyyy@gmail.com>"]
-name = "playground"
 edition = "2021"
-version = "0.1.0"
+name = "playground"
 readme = "README.md"
 repository = "https://github.com/dehwyy/rust-playground"
-
+version = "0.1.0"
 
 [dependencies]
 rand = "0.8.5"
+term_size = "0.3.2"
