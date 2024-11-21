@@ -8,6 +8,9 @@ const PADDING_Y: usize = 2;
 #[derive(Default)]
 pub enum Align {
     #[default]
+    Left,
+    Center,
+    Right,
     TopLeft,
     TopCenter,
     TopRight,
@@ -20,30 +23,13 @@ pub enum Align {
 }
 
 impl Align {
-    // fn get_offset(&self, (tw, th): TerminalSize, (w, h): PrintItemSize) -> TerminalPosition {
-    //     println!("tw: {tw}, th: {th}, w: {w}, h: {h}");
-    //     match self {
-    //         Align::TopLeft => (0, 0),
-    //         Align::TopCenter => ((tw - w) / 2, 0),
-    //         Align::TopRight => (tw - w, 0),
-
-    //         Align::MiddleLeft => (0, (th - h) / 2),
-    //         Align::MiddleCenter => ((tw - w) / 2, (th - h) / 2),
-    //         Align::MiddleRight => (tw - w, (th - h) / 2),
-
-    //         Align::BottomLeft => (0, th - h),
-    //         Align::BottomCenter => ((tw - w) / 2, th - h),
-    //         Align::BottomRight => (tw - w, th - h),
+    // fn get_left_offset(&self, (tw, th): TerminalSize, (w, h): PrintItemSize) -> usize {
+    //     match () {
+    //         _ if self.is_left() => 0,
+    //         _ if self.is_middle_w() => (tw - w) / 2,
+    //         _ => tw - w,
     //     }
     // }
-
-    fn get_left_offset(&self, (tw, th): TerminalSize, (w, h): PrintItemSize) -> usize {
-        match () {
-            _ if self.is_left() => 0,
-            _ if self.is_middle_w() => (tw - w) / 2,
-            _ => tw - w,
-        }
-    }
 
     fn get_top_offset(&self, (tw, th): TerminalSize, (w, h): PrintItemSize) -> usize {
         match () {
@@ -65,14 +51,21 @@ impl Align {
     }
 
     fn is_left(&self) -> bool {
-        matches!(self, Align::TopLeft | Align::MiddleLeft | Align::BottomLeft)
+        matches!(
+            self,
+            Align::TopLeft | Align::MiddleLeft | Align::BottomLeft | Align::Left
+        )
     }
 
     fn is_middle_w(&self) -> bool {
         matches!(
             self,
-            Align::TopCenter | Align::MiddleCenter | Align::BottomCenter
+            Align::TopCenter | Align::MiddleCenter | Align::BottomCenter | Align::Center
         )
+    }
+
+    fn is_simple(&self) -> bool {
+        matches!(self, Align::Left | Align::Center | Align::Right)
     }
 }
 
@@ -132,17 +125,19 @@ where
         let lines = s.lines().map(String::from).collect::<Vec<_>>();
         let (tw, th) = super::size();
 
-        prerender(lines.len() < th);
-        if lines.len() < th {
-            let offset_y = cfg.align.get_top_offset(
-                (tw, th),
-                (
-                    lines.iter().map(|l| l.chars().count()).max().unwrap_or(0),
-                    lines.len(),
-                ),
-            );
+        if !cfg.align.is_simple() {
+            prerender(lines.len() < th);
+            if lines.len() < th {
+                let offset_y = cfg.align.get_top_offset(
+                    (tw, th),
+                    (
+                        lines.iter().map(|l| l.chars().count()).max().unwrap_or(0),
+                        lines.len(),
+                    ),
+                );
 
-            (0..offset_y).for_each(|_| println!());
+                (0..offset_y).for_each(|_| println!());
+            }
         }
 
         for line in lines {
@@ -153,6 +148,8 @@ where
             }
         }
 
-        postrender();
+        if !cfg.align.is_simple() {
+            postrender();
+        }
     }
 }

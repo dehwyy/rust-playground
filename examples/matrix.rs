@@ -8,14 +8,14 @@ fn main() {
     let mut matrix = Matrix::new(Dim::new(3, 3));
     matrix.fill_random_in_range(1., 4.);
 
-    let sq_matrix = SquareMatrix::try_from(&matrix).unwrap();
+    let mut matrix2 = Matrix::new(Dim::new(3, 2));
+    matrix2.fill_random_in_range(1., 4.);
 
-    let cfg = PrintConfig::new().align(Align::MiddleCenter).precision(1);
-    sq_matrix.print(&cfg);
+    let matrix3 = matrix.multiply(&matrix2).unwrap();
 
-    let mut new_sq = SquareMatrix::new(3);
-    new_sq.fill_random_in_range(1., 5.);
+    let cfg = PrintConfig::new().align(Align::Center).precision(2);
 
-    new_sq.print(&cfg);
-    println!("{}", new_sq.det());
+    matrix.print(&cfg);
+    matrix2.print(&cfg);
+    matrix3.print(&cfg);
 }

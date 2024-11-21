@@ -119,6 +119,28 @@ where
 
         self
     }
+
+    fn multiply(&self, rhs: &Self) -> Option<Matrix> {
+        let (m1, n1) = (self.get_dim().get_m(), self.get_dim().get_n());
+        let (m2, n2) = (rhs.get_dim().get_m(), rhs.get_dim().get_n());
+
+        if n1 != m2 {
+            return None;
+        }
+
+        let dim = Dim(m1, n2);
+
+        let data = new_empty_matrix_data(&dim);
+        for n in 0..n2 {
+            for m in 0..m1 {
+                data[m][n].set((0..n1).zip(0..m2).fold(0., |acc, (i, j)| {
+                    acc + self.get(m, i).get() * rhs.get(j, n).get()
+                }));
+            }
+        }
+
+        Some(Matrix { data, dim })
+    }
 }
 
 impl Dim {
