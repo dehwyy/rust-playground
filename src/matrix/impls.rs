@@ -100,11 +100,11 @@ where
                 (el, idx)
             };
 
-            if (pivot_el == 0.) {
+            if pivot_el == 0. {
                 continue;
             }
 
-            if (pivot_idx != start_pivot_idx) {
+            if pivot_idx != start_pivot_idx {
                 self.spaw_rows(pivot_idx, i);
             }
 
@@ -184,13 +184,6 @@ impl MatrixRow<'_> {
 }
 
 impl Matrix {
-    // const GAP_Y: usize = 2;
-    // const GAP_X: usize = 2;
-    // const GAP_FILL: &str = " ";
-    // const X_TOP_BORDER: &str = "─";
-    // const X_BOTTOM_BORDER: &str = "‾";
-    // const Y_BORDER: &str = "│";
-
     pub fn new(dim: Dim) -> Self {
         Self {
             data: new_empty_matrix_data(&dim),
@@ -284,16 +277,20 @@ impl Display for dyn MatrixRepr {
         };
 
         let (m, n) = (self.get_dim().get_m(), self.get_dim().get_n());
-        let width = get_i32_len(max).max(get_i32_len(min)) + precision + print::ITEM_X_GAP / 2;
-        let row_width = n * (width + ITEM_X_GAP / 2);
 
-        writeln!(f, "{:_^row_width$}", "Matrix")?;
+        // Element width
+        let width = get_i32_len(max).max(get_i32_len(min)) + precision;
+
+        // Overall line width
+        let line_width = (n * (width + ITEM_X_GAP + 1)).div_ceil(2) * 2;
+
+        writeln!(f, "{:_^line_width$}", "Matrix")?;
         for i in 0..m {
             for j in 0..n {
                 write!(f, "{:>width$.precision$}", self.get_data()[i][j].get())?;
 
                 if j != self.get_dim().get_n() - 1 {
-                    write!(f, " ")?;
+                    write!(f, "{:>1$}", " ", ITEM_X_GAP)?;
                 }
             }
 
@@ -308,7 +305,7 @@ impl Display for dyn MatrixRepr {
             }
         }
 
-        writeln!(f, "{:‾^row_width$}", "")?;
+        writeln!(f, "{:‾^line_width$}", "")?;
 
         Ok(())
     }

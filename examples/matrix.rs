@@ -2,7 +2,7 @@ use playground as pg;
 
 use pg::core::term::print::Print;
 use pg::core::term::print::{Align, PrintConfig};
-use pg::matrix::{Dim, Matrix, MatrixOperations, SquareMatrix};
+use pg::matrix::{Dim, Matrix, MatrixOperations};
 
 fn main() {
     let mut matrix = Matrix::new(Dim::new(3, 3));

@@ -33,10 +33,10 @@ use crate::random::Random;
 //         }
 
 mod print {
-    pub const PRECISION: usize = 4;
-    pub const ITEM_X_GAP: usize = 4;
+    pub(super) const PRECISION: usize = 4;
+    pub(super) const ITEM_X_GAP: usize = 4;
     // should be > 1;
-    pub const ITEM_Y_GAP: usize = 4;
+    pub(super) const ITEM_Y_GAP: usize = 4;
 }
 
 type MatrixItem = f32;
