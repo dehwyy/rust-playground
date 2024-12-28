@@ -5,6 +5,13 @@ pub enum LinkedListError {
     OutOfBounds,
 }
 
+impl super::Error for LinkedListError {}
+impl Display for LinkedListError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:?}", self))
+    }
+}
+
 pub type NodeRef<T> = Rc<RefCell<Node<T>>>;
 #[derive(Clone, Debug)]
 pub struct Node<T> {
@@ -136,8 +143,31 @@ where
     }
 }
 
+impl super::Algorithm for LinkedList<u32> {
+    fn showcase() -> Result<(), Box<dyn super::Error>> {
+        let mut linked_list = LinkedList::<u32>::new();
+
+        linked_list.push(1)?;
+        linked_list.push(2)?;
+        linked_list.push(3)?;
+
+        linked_list.insert(727, 1)?;
+        linked_list.insert(1000, 2)?;
+
+        println!(
+            "LinkedList at 2: {}",
+            (*linked_list.get(2).unwrap()).clone().into_inner().value
+        );
+        println!("LinkedList size: {}", linked_list.size);
+        println!("LinkedList: {linked_list}");
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::super::Algorithm;
     use super::*;
 
     #[test]
@@ -152,11 +182,9 @@ mod tests {
 
         assert!(linked_list.get(4).is_some());
         assert!(linked_list.get(0).is_some());
+
         assert_eq!(linked_list.get(0), linked_list.head);
-
         assert_eq!(linked_list.size, 5);
-
-        // println!("{}", linked_list);
     }
 
     #[test]
@@ -167,5 +195,10 @@ mod tests {
         assert!(linked_list.head.is_none());
         assert!(linked_list.get(0).is_none());
         assert_eq!(linked_list.size, 0);
+    }
+
+    #[test]
+    fn showcase() {
+        LinkedList::showcase().unwrap();
     }
 }
