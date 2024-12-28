@@ -3,15 +3,14 @@ use std::{cell::RefCell, fmt::Display, rc::Rc};
 #[derive(Debug)]
 pub enum LinkedListError {
     OutOfBounds,
-    Unhandled,
 }
 
-pub type NodeRef<T> = Option<Rc<RefCell<Node<T>>>>;
-#[derive(Clone)]
+pub type NodeRef<T> = Rc<RefCell<Node<T>>>;
+#[derive(Clone, Debug)]
 pub struct Node<T> {
     pub value: T,
-    next: NodeRef<T>,
-    previous: NodeRef<T>,
+    next: Option<NodeRef<T>>,
+    previous: Option<NodeRef<T>>,
 }
 impl<T> Node<T> {
     pub fn new(value: T) -> Self {
@@ -23,9 +22,15 @@ impl<T> Node<T> {
     }
 }
 
+impl<T: PartialEq> PartialEq for Node<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
 // Circular double linked list
 pub struct LinkedList<T> {
-    head: NodeRef<T>,
+    head: Option<NodeRef<T>>,
     size: usize,
 }
 
@@ -37,18 +42,11 @@ impl<T: Clone + Display> LinkedList<T> {
         }
     }
 
-    pub fn get(&self, at: usize) -> Result<NodeRef<T>, LinkedListError> {
-        match (self.size as i32) - (at as i32) {
-            sub if sub < 0 => return Err(LinkedListError::OutOfBounds), // Case (1)
-            sub if sub == 0 => return Ok(None),                         // Case (2)
-            _ => {}
-        };
+    pub fn get(&self, at: usize) -> Option<NodeRef<T>> {
+        if (self.size as i32) - (at as i32) <= 0 {
+            return None;
+        }
 
-        // Shoud exist as `self.size` != 0:
-        // We have at >= 0, self >= 0 (as `usize`):
-        // { at > size  <-  Case 1
-        // { at == size <- Case 2
-        // { at < size  <- (size >  0, at >= 0) -> size > 0
         let mut node = self.head.clone().unwrap();
 
         for _ in 0..at {
@@ -58,14 +56,18 @@ impl<T: Clone + Display> LinkedList<T> {
             }
         }
 
-        Ok(Some(node))
+        Some(node)
     }
 
     pub fn insert(&mut self, value: T, to: usize) -> Result<(), LinkedListError> {
+        if self.size < to {
+            return Err(LinkedListError::OutOfBounds);
+        }
+
         let new_node = Rc::new(RefCell::new(Node::new(value)));
 
         // Can't find el at position -> insert at the end
-        let Some(old_node) = self.get(to)? else {
+        let Some(old_node) = self.get(to) else {
             match self.size == 0 {
                 // LinkedList is empty yet -> initialize `.head`.
                 true => {
@@ -75,10 +77,7 @@ impl<T: Clone + Display> LinkedList<T> {
                 // Non-empty LL:
                 false => {
                     // Get last element.
-                    let last_node = self
-                        .get(to - 1)
-                        .expect("Should not panic!")
-                        .expect("Previous node should exist");
+                    let last_node = self.get(to - 1).expect("Previous node should exist");
 
                     self.size += 1;
                     new_node.borrow_mut().previous = Some(last_node.clone());
@@ -142,21 +141,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn linked_list() -> Result<(), LinkedListError> {
+    fn linked_list() {
         let mut linked_list = LinkedList::<u32>::new();
-        linked_list.push(52)?;
-        linked_list.push(30)?;
-        linked_list.push(77)?;
-        linked_list.push(177)?;
-        linked_list.push(727)?;
+        assert!(linked_list.push(52).is_ok());
+        assert!(linked_list.push(30).is_ok());
 
-        linked_list.insert(120, 3)?;
-        linked_list.insert(144, 3)?;
-        linked_list.push(3030)?;
+        assert!(linked_list.insert(120, 1).is_ok());
+        assert!(linked_list.insert(144, 2).is_ok());
+        assert!(linked_list.insert(1, 0).is_ok());
 
-        println!("{}", linked_list);
-        println!("{}", linked_list.size);
+        assert!(linked_list.get(4).is_some());
+        assert!(linked_list.get(0).is_some());
+        assert_eq!(linked_list.get(0), linked_list.head);
 
-        Ok(())
+        assert_eq!(linked_list.size, 5);
+
+        // println!("{}", linked_list);
+    }
+
+    #[test]
+    fn out_of_bounds() {
+        let mut linked_list = LinkedList::<u32>::new();
+
+        assert!(linked_list.insert(10, 1).is_err());
+        assert!(linked_list.head.is_none());
+        assert!(linked_list.get(0).is_none());
+        assert_eq!(linked_list.size, 0);
     }
 }
