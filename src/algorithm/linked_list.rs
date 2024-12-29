@@ -49,7 +49,7 @@ impl<T: Clone + Display> LinkedList<T> {
         }
     }
 
-    pub fn get(&self, at: usize) -> Option<NodeRef<T>> {
+    fn get_raw(&self, at: usize) -> Option<NodeRef<T>> {
         if (self.size as i32) - (at as i32) <= 0 {
             return None;
         }
@@ -66,6 +66,14 @@ impl<T: Clone + Display> LinkedList<T> {
         Some(node)
     }
 
+    pub fn get(&self, at: usize) -> Option<T> {
+        let Some(node) = self.get_raw(at) else {
+            return None;
+        };
+
+        Some((*node).clone().into_inner().value)
+    }
+
     pub fn insert(&mut self, value: T, to: usize) -> Result<(), LinkedListError> {
         if self.size < to {
             return Err(LinkedListError::OutOfBounds);
@@ -74,7 +82,7 @@ impl<T: Clone + Display> LinkedList<T> {
         let new_node = Rc::new(RefCell::new(Node::new(value)));
 
         // Can't find el at position -> insert at the end
-        let Some(old_node) = self.get(to) else {
+        let Some(old_node) = self.get_raw(to) else {
             match self.size == 0 {
                 // LinkedList is empty yet -> initialize `.head`.
                 true => {
@@ -84,7 +92,7 @@ impl<T: Clone + Display> LinkedList<T> {
                 // Non-empty LL:
                 false => {
                     // Get last element.
-                    let last_node = self.get(to - 1).expect("Previous node should exist");
+                    let last_node = self.get_raw(to - 1).expect("Previous node should exist");
 
                     self.size += 1;
                     new_node.borrow_mut().previous = Some(last_node.clone());
@@ -122,8 +130,9 @@ impl<T: Clone + Display> LinkedList<T> {
         Ok(())
     }
 
-    pub fn push(&mut self, value: T) -> Result<(), LinkedListError> {
+    pub fn push(&mut self, value: T) {
         self.insert(value, self.size)
+            .expect("Error on `push` should not be raised!")
     }
 }
 
@@ -147,16 +156,19 @@ impl super::Algorithm for LinkedList<u32> {
     fn showcase() -> Result<(), Box<dyn super::Error>> {
         let mut linked_list = LinkedList::<u32>::new();
 
-        linked_list.push(1)?;
-        linked_list.push(2)?;
-        linked_list.push(3)?;
+        linked_list.push(1);
+        linked_list.push(2);
+        linked_list.push(3);
 
         linked_list.insert(727, 1)?;
         linked_list.insert(1000, 2)?;
 
         println!(
             "LinkedList at 2: {}",
-            (*linked_list.get(2).unwrap()).clone().into_inner().value
+            (*linked_list.get_raw(2).unwrap())
+                .clone()
+                .into_inner()
+                .value
         );
         println!("LinkedList size: {}", linked_list.size);
         println!("LinkedList: {linked_list}");
@@ -173,18 +185,29 @@ mod tests {
     #[test]
     fn linked_list() {
         let mut linked_list = LinkedList::<u32>::new();
-        assert!(linked_list.push(52).is_ok());
-        assert!(linked_list.push(30).is_ok());
+        linked_list.push(52);
+        linked_list.push(30);
 
         assert!(linked_list.insert(120, 1).is_ok());
         assert!(linked_list.insert(144, 2).is_ok());
         assert!(linked_list.insert(1, 0).is_ok());
 
-        assert!(linked_list.get(4).is_some());
-        assert!(linked_list.get(0).is_some());
+        assert!(linked_list.get_raw(4).is_some());
+        assert!(linked_list.get_raw(0).is_some());
 
-        assert_eq!(linked_list.get(0), linked_list.head);
+        assert_eq!(linked_list.get_raw(0), linked_list.head);
         assert_eq!(linked_list.size, 5);
+    }
+
+    #[test]
+    fn common_get() {
+        let mut linked_list = LinkedList::<u32>::new();
+
+        linked_list.push(52);
+        linked_list.push(102);
+
+        assert_eq!(linked_list.get(1).unwrap(), 102);
+        assert_eq!(linked_list.get(0).unwrap(), 52);
     }
 
     #[test]
@@ -193,7 +216,7 @@ mod tests {
 
         assert!(linked_list.insert(10, 1).is_err());
         assert!(linked_list.head.is_none());
-        assert!(linked_list.get(0).is_none());
+        assert!(linked_list.get_raw(0).is_none());
         assert_eq!(linked_list.size, 0);
     }
 
