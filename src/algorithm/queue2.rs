@@ -117,7 +117,14 @@ impl super::Algorithm for Queue {
 
 #[cfg(test)]
 mod test {
+    use crate::algorithm::Algorithm;
+
     use super::Queue;
+
+    #[test]
+    fn showcase() {
+        Queue::showcase().unwrap();
+    }
 
     #[test]
     fn test() {
